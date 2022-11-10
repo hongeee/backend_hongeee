@@ -1,14 +1,14 @@
 package com.hongeee.vacation.service;
 
+import com.hongeee.vacation.api.model.JwtTokenDto;
+import com.hongeee.vacation.api.model.RefreshTokenRequestDto;
 import com.hongeee.vacation.api.model.SignInRequestDto;
 import com.hongeee.vacation.api.model.SignUpRequestDto;
-import com.hongeee.vacation.api.model.TokenDto;
-import com.hongeee.vacation.api.model.TokenRequestDto;
-import com.hongeee.vacation.config.JwtTokenUtils;
 import com.hongeee.vacation.domain.RefreshToken;
 import com.hongeee.vacation.domain.User;
 import com.hongeee.vacation.repository.RefreshTokenRepository;
 import com.hongeee.vacation.repository.UserRepository;
+import com.hongeee.vacation.utils.JwtTokenUtils;
 import java.util.Optional;
 import javax.persistence.EntityExistsException;
 import javax.persistence.EntityNotFoundException;
@@ -22,24 +22,27 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class SignService {
+
   private final UserRepository userRepository;
+
   private final RefreshTokenRepository refreshTokenRepository;
 
   private final JwtTokenUtils jwtTokenUtils;
+
   private final PasswordEncoder passwordEncoder;
 
   @Transactional
-  public Long signUp(SignUpRequestDto userSignupDto) {
+  public Long signUp(SignUpRequestDto signUpRequestDto) {
     // 동일 사용자 정보 유무 확인
-    if (userRepository.findByEmail(userSignupDto.getEmail()).isPresent()) {
+    if (userRepository.findByEmail(signUpRequestDto.getEmail()).isPresent()) {
       throw new EntityExistsException("Email is already in use");
     }
 
-    return userRepository.save(userSignupDto.toEntity(passwordEncoder)).getUserId();
+    return userRepository.save(signUpRequestDto.toEntity(passwordEncoder)).getId();
   }
 
   @Transactional
-  public TokenDto signIn(SignInRequestDto signInRequestDto) {
+  public JwtTokenDto signIn(SignInRequestDto signInRequestDto) {
     // 사용자 정보 유무 확인
     User user =
         userRepository
@@ -52,32 +55,32 @@ public class SignService {
     }
 
     // AccessToken, RefreshToken 발급
-    TokenDto tokenDto = jwtTokenUtils.createJwtToken(user.getUserId(), user.getRoles());
+    JwtTokenDto jwtTokenDto = jwtTokenUtils.createJwtToken(user.getId(), user.getRoles());
 
     RefreshToken refreshToken;
-    Optional<RefreshToken> optional = refreshTokenRepository.findByTokenKey(user.getUserId());
+    Optional<RefreshToken> optional = refreshTokenRepository.findByTokenKey(user.getId());
 
     if (optional.isPresent()) {
-      refreshToken = optional.get().updateToken(tokenDto.getRefreshToken());
+      refreshToken = optional.get().updateToken(jwtTokenDto.getRefreshToken());
     } else {
       refreshToken =
           RefreshToken.builder()
-              .tokenKey(user.getUserId())
-              .token(tokenDto.getRefreshToken())
+              .tokenKey(user.getId())
+              .token(jwtTokenDto.getRefreshToken())
               .build();
     }
 
     refreshTokenRepository.save(refreshToken);
 
-    return tokenDto;
+    return jwtTokenDto;
   }
 
   @Transactional
-  public TokenDto refreshJwtToken(TokenRequestDto tokenRequestDto) {
+  public JwtTokenDto refreshJwtToken(RefreshTokenRequestDto refreshTokenRequestDto) {
     // RefreshToken 유효성 체크
-    jwtTokenUtils.validationToken(tokenRequestDto.getRefreshToken());
+    jwtTokenUtils.validationToken(refreshTokenRequestDto.getRefreshToken());
 
-    String accessToken = tokenRequestDto.getAccessToken();
+    String accessToken = refreshTokenRequestDto.getAccessToken();
     Authentication authentication = jwtTokenUtils.getAuthentication(accessToken);
 
     // RefreshToken 일치 여부 확인
@@ -86,7 +89,7 @@ public class SignService {
             .findByTokenKey(Long.parseLong(authentication.getName()))
             .orElseThrow(EntityNotFoundException::new);
 
-    if (!refreshToken.getToken().equals(tokenRequestDto.getRefreshToken())) {
+    if (!refreshToken.getToken().equals(refreshTokenRequestDto.getRefreshToken())) {
       throw new BadCredentialsException("Incorrect refresh token");
     }
 
@@ -96,9 +99,9 @@ public class SignService {
             .findById(Long.parseLong(authentication.getName()))
             .orElseThrow(EntityNotFoundException::new);
 
-    TokenDto tokenDto = jwtTokenUtils.createJwtToken(user.getUserId(), user.getRoles());
-    refreshTokenRepository.save(refreshToken.updateToken(tokenDto.getRefreshToken()));
+    JwtTokenDto jwtTokenDto = jwtTokenUtils.createJwtToken(user.getId(), user.getRoles());
+    refreshTokenRepository.save(refreshToken.updateToken(jwtTokenDto.getRefreshToken()));
 
-    return tokenDto;
+    return jwtTokenDto;
   }
 }

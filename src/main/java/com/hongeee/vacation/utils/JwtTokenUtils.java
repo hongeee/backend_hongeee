@@ -1,6 +1,6 @@
-package com.hongeee.vacation.config;
+package com.hongeee.vacation.utils;
 
-import com.hongeee.vacation.api.model.TokenDto;
+import com.hongeee.vacation.api.model.JwtTokenDto;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Header;
@@ -14,7 +14,6 @@ import java.util.Date;
 import java.util.List;
 import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,9 +22,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
-@Slf4j
-@RequiredArgsConstructor
 @Component
+@RequiredArgsConstructor
 public class JwtTokenUtils {
 
   @Value("spring.jwt.secret")
@@ -34,7 +32,7 @@ public class JwtTokenUtils {
   private final UserDetailsService userDetailsService;
 
   private static final String ROLES = "roles";
-  private static final Long ACCESS_TOKEN_VALID_MS = 30 * 60 * 1000L;  // 30 minute
+  private static final Long ACCESS_TOKEN_VALID_MS = 30 * 60 * 1000L; // 30 minute
   private static final Long REFRESH_TOKEN_VALID_MS = 24 * 60 * 60 * 1000L; // 1 day
 
   @PostConstruct
@@ -43,8 +41,8 @@ public class JwtTokenUtils {
     secretKey = Base64UrlCodec.BASE64URL.encode(secretKey.getBytes(StandardCharsets.UTF_8));
   }
 
-  public TokenDto createJwtToken(Long userPk, List<String> roles) {
-    Claims claims = Jwts.claims().setSubject(String.valueOf(userPk));
+  public JwtTokenDto createJwtToken(Long id, List<String> roles) {
+    Claims claims = Jwts.claims().setSubject(String.valueOf(id));
     claims.put(ROLES, roles);
 
     Date now = new Date();
@@ -67,7 +65,7 @@ public class JwtTokenUtils {
             .signWith(SignatureAlgorithm.HS256, secretKey)
             .compact();
 
-    return TokenDto.builder()
+    return JwtTokenDto.builder()
         .grantType("Bearer")
         .accessToken(accessToken)
         .refreshToken(refreshToken)

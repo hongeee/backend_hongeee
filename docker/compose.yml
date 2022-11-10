@@ -3,7 +3,7 @@ services:
     image: mysql:5.7.32
     container_name: mysql_vacation
     volumes:
-      - $HOME/mysql_data:/var/lib/mysql/
+      - $HOME/mysql_vacation:/var/lib/mysql/
       - ./mysql-init-files/:/docker-entrypoint-initdb.d/
     environment:
       - MYSQL_USER=root

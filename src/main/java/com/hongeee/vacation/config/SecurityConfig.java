@@ -13,12 +13,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.zalando.problem.spring.web.advice.security.SecurityProblemSupport;
 
-@RequiredArgsConstructor
 @Configuration
+@RequiredArgsConstructor
 @Import(SecurityProblemSupport.class)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
   private final SecurityProblemSupport problemSupport;
 
   @Bean

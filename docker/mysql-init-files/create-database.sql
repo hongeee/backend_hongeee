@@ -1,0 +1,1 @@
+CREATE DATABASE request_vacation;
