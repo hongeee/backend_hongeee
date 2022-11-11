@@ -7,13 +7,15 @@ import com.hongeee.vacation.api.model.VacationStatus;
 import com.hongeee.vacation.api.model.VacationType;
 import com.hongeee.vacation.domain.User;
 import com.hongeee.vacation.domain.Vacation;
+import com.hongeee.vacation.exception.UserNotFoundException;
+import com.hongeee.vacation.exception.VacationException;
+import com.hongeee.vacation.exception.VacationNotFoundException;
 import com.hongeee.vacation.repository.UserRepository;
 import com.hongeee.vacation.repository.VacationRepository;
 import com.hongeee.vacation.utils.VacationValidationUtils;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -55,7 +57,7 @@ public class VacationService {
     User user = getCurrentUser();
 
     if (user.getAnnualDays() == 0) {
-      throw new RuntimeException("연차를 모두 사용했습니다.");
+      throw new VacationException("연차를 모두 사용했습니다.");
     }
 
     // 시작일/종료일 정보를 통해 휴가 사용 일수 계산
@@ -84,12 +86,12 @@ public class VacationService {
     }
 
     if (period == 0) {
-      throw new RuntimeException("휴가 신청 일수가 0일 입니다.");
+      throw new VacationException("휴가 신청 일수가 0일 입니다.");
     }
 
     // 사용 일수가 남은 휴가 일수보다 적은지 확인
     if (user.getAnnualDays() < period) {
-      throw new RuntimeException("남은 연차가 부족합니다.");
+      throw new VacationException("연차가 부족합니다.");
     }
 
     // 이미 신청한 휴가와 겹치는 날짜가 있는지 확인
@@ -101,7 +103,7 @@ public class VacationService {
                             && v.getEndDate().compareTo(vacationRequestDto.getStartDate()) >= 0)
                         || (v.getStartDate().compareTo(vacationRequestDto.getEndDate()) <= 0
                             && v.getEndDate().compareTo(vacationRequestDto.getEndDate()) >= 0)))) {
-      throw new RuntimeException("중복된 날짜에 이미 휴가 신청이 있습니다.");
+      throw new VacationException("중복된 날짜에 휴가 신청이 이미 있습니다.");
     }
 
     Vacation vacation = vacationRequestDto.toEntity();
@@ -124,11 +126,11 @@ public class VacationService {
         user.getVacations().stream()
             .filter(v -> v.getId().equals(id))
             .findFirst()
-            .orElseThrow(EntityNotFoundException::new);
+            .orElseThrow(VacationNotFoundException::new);
 
     // 취소하려는 휴가의 시작 날짜 체크
     if (vacation.getStartDate().compareTo(LocalDate.now()) <= 0) {
-      throw new RuntimeException("이미 시작한 휴가는 취소할 수 없습니다.");
+      throw new VacationException("이미 시작한 휴가는 취소할 수 없습니다.");
     }
 
     // 휴가 취소 및 연차 일수 반환
@@ -145,11 +147,11 @@ public class VacationService {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
     if (authentication == null) {
-      throw new BadCredentialsException("No credential");
+      throw new BadCredentialsException("자격 증명이 없습니다.");
     }
 
     return userRepository
         .findById(Long.parseLong(authentication.getName()))
-        .orElseThrow(EntityNotFoundException::new);
+        .orElseThrow(UserNotFoundException::new);
   }
 }

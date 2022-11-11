@@ -1,108 +1,107 @@
 package com.hongeee.vacation.exception;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
-import javax.persistence.EntityNotFoundException;
 import javax.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.context.request.NativeWebRequest;
-import org.zalando.problem.DefaultProblem;
-import org.zalando.problem.Problem;
-import org.zalando.problem.ProblemBuilder;
-import org.zalando.problem.Status;
-import org.zalando.problem.spring.web.advice.ProblemHandling;
-import org.zalando.problem.spring.web.advice.security.SecurityAdviceTrait;
-import org.zalando.problem.violations.ConstraintViolationProblem;
 
 @RestControllerAdvice
-public class ExceptionTranslator implements ProblemHandling, SecurityAdviceTrait {
+public class ExceptionTranslator {
 
-  @Override
-  public ResponseEntity<Problem> process(ResponseEntity<Problem> entity, NativeWebRequest request) {
-    if (entity == null || entity.getBody() == null) {
-      return entity;
-    }
-
-    Problem problem = entity.getBody();
-
-    if (!(problem instanceof ConstraintViolationProblem || problem instanceof DefaultProblem)) {
-      return entity;
-    }
-
-    ProblemBuilder builder =
-        Problem.builder()
-            .withType(
-                Problem.DEFAULT_TYPE.equals(problem.getType())
-                    ? ErrorConstants.DEFAULT_TYPE
-                    : problem.getType())
-            .withStatus(problem.getStatus())
-            .withTitle(problem.getTitle())
-            .with("path", request.getNativeRequest(HttpServletRequest.class).getRequestURI());
-
-    if (problem instanceof ConstraintViolationProblem) {
-      builder
-          .with("violations", ((ConstraintViolationProblem) problem).getViolations())
-          .with("message", ErrorConstants.ERR_VALIDATION);
-
-      return new ResponseEntity<>(builder.build(), entity.getHeaders(), entity.getStatusCode());
-    } else {
-      builder
-          .withCause(((DefaultProblem) problem).getCause())
-          .withDetail(problem.getDetail())
-          .withInstance(problem.getInstance());
-      problem.getParameters().forEach(builder::with);
-
-      if (!problem.getParameters().containsKey("message") && problem.getStatus() != null) {
-        builder.with("message", "error.http." + problem.getStatus().getStatusCode());
-      }
-
-      return new ResponseEntity<>(builder.build(), entity.getHeaders(), entity.getStatusCode());
-    }
-  }
-
-  @Override
-  public ResponseEntity<Problem> handleMethodArgumentNotValid(
-      MethodArgumentNotValidException ex, @Nonnull NativeWebRequest request) {
-    BindingResult result = ex.getBindingResult();
-    List<FieldError> fieldErrors = result.getFieldErrors().stream().collect(Collectors.toList());
-
-    Problem problem =
-        Problem.builder()
-            .withType(ErrorConstants.CONSTRAINT_VIOLATION_TYPE)
-            .withTitle("Method argument not valid")
-            .withStatus(defaultConstraintViolationStatus())
-            .with("message", ErrorConstants.ERR_VALIDATION)
-            .with("fieldErrors", fieldErrors)
-            .build();
-    return create(ex, problem, request);
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ErrorResponse> handleException(HttpServletRequest request, Exception e) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .message(e.getMessage())
+                .build());
   }
 
   @ExceptionHandler(RuntimeException.class)
-  public ResponseEntity<Problem> handleRuntimeException(
-      RuntimeException ex, NativeWebRequest request) {
-    Problem problem =
-        Problem.builder()
-            .withStatus(Status.INTERNAL_SERVER_ERROR)
-            .with("message", ErrorConstants.INTERNAL_SERVER_ERROR)
-            .build();
-    return create(ex, problem, request);
+  public ResponseEntity<ErrorResponse> handleRuntimeException(
+      HttpServletRequest request, RuntimeException e) {
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .message(e.getMessage())
+                .build());
   }
 
-  @ExceptionHandler(EntityNotFoundException.class)
-  public ResponseEntity<Problem> handleEntityNotFoundException(
-      EntityNotFoundException ex, NativeWebRequest request) {
-    Problem problem =
-        Problem.builder()
-            .withStatus(Status.NOT_FOUND)
-            .with("message", ErrorConstants.ENTITY_NOT_FOUND_TYPE)
-            .withDetail(ex.getMessage())
-            .build();
-    return create(ex, problem, request);
+  @ExceptionHandler(AuthenticationException.class)
+  public ResponseEntity<ErrorResponse> handleAuthenticationException(
+      HttpServletRequest request, AuthenticationException e) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .message(e.getMessage())
+                .build());
+  }
+
+  @ExceptionHandler(RefreshTokenNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleRefreshTokenNotFoundException(
+      HttpServletRequest request, RefreshTokenNotFoundException e) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .status(HttpStatus.NOT_FOUND.value())
+                .message("리프레시 토큰 정보가 존재하지 않습니다.")
+                .build());
+  }
+
+  @ExceptionHandler(UserAlreadyExistException.class)
+  public ResponseEntity<ErrorResponse> handleUserAlreadyExistException(
+      HttpServletRequest request, UserAlreadyExistException e) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .status(HttpStatus.NOT_FOUND.value())
+                .message("이미 존재하는 사용자입니다.")
+                .build());
+  }
+
+  @ExceptionHandler(UserNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleUserNotFoundException(
+      HttpServletRequest request, UserNotFoundException e) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .status(HttpStatus.NOT_FOUND.value())
+                .message("사용자 정보가 존재하지 않습니다.")
+                .build());
+  }
+
+  @ExceptionHandler(VacationException.class)
+  public ResponseEntity<ErrorResponse> handleVacationException(
+      HttpServletRequest request, VacationException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .message(e.getMessage())
+                .build());
+  }
+
+  @ExceptionHandler(VacationNotFoundException.class)
+  public ResponseEntity<ErrorResponse> handleVacationNotFoundException(
+      HttpServletRequest request, VacationNotFoundException e) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(
+            ErrorResponse.builder()
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .status(HttpStatus.NOT_FOUND.value())
+                .message("휴가 신청 정보가 존재하지 않습니다.")
+                .build());
   }
 }

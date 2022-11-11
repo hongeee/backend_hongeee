@@ -77,7 +77,7 @@ public class JwtTokenUtils {
     Claims claims = parseClaims(accessToken);
 
     if (claims.get(ROLES) == null) {
-      throw new BadCredentialsException("Invalid token");
+      throw new BadCredentialsException("유효하지 않은 토큰입니다.");
     }
 
     // 사용자 정보 조회
@@ -100,13 +100,13 @@ public class JwtTokenUtils {
 
       return true;
     } catch (SecurityException | MalformedJwtException e) {
-      throw new BadCredentialsException("Invalid signature");
+      throw new BadCredentialsException("유효하지 않은 서명입니다.");
     } catch (ExpiredJwtException e) {
-      throw new BadCredentialsException("Expired token");
+      throw new BadCredentialsException("토큰이 만료되었습니다.");
     } catch (UnsupportedJwtException e) {
-      throw new BadCredentialsException("Unsupported token");
+      throw new BadCredentialsException("지원하지 않는 토큰입니다.");
     } catch (IllegalArgumentException e) {
-      throw new BadCredentialsException("Invalid token");
+      throw new BadCredentialsException("유효하지 않은 토큰입니다.");
     }
   }
 }

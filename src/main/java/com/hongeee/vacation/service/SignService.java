@@ -6,12 +6,13 @@ import com.hongeee.vacation.api.model.SignInRequestDto;
 import com.hongeee.vacation.api.model.SignUpRequestDto;
 import com.hongeee.vacation.domain.RefreshToken;
 import com.hongeee.vacation.domain.User;
+import com.hongeee.vacation.exception.RefreshTokenNotFoundException;
+import com.hongeee.vacation.exception.UserAlreadyExistException;
+import com.hongeee.vacation.exception.UserNotFoundException;
 import com.hongeee.vacation.repository.RefreshTokenRepository;
 import com.hongeee.vacation.repository.UserRepository;
 import com.hongeee.vacation.utils.JwtTokenUtils;
 import java.util.Optional;
-import javax.persistence.EntityExistsException;
-import javax.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -35,7 +36,7 @@ public class SignService {
   public Long signUp(SignUpRequestDto signUpRequestDto) {
     // 동일 사용자 정보 유무 확인
     if (userRepository.findByEmail(signUpRequestDto.getEmail()).isPresent()) {
-      throw new EntityExistsException("Email is already in use");
+      throw new UserAlreadyExistException();
     }
 
     return userRepository.save(signUpRequestDto.toEntity(passwordEncoder)).getId();
@@ -47,11 +48,11 @@ public class SignService {
     User user =
         userRepository
             .findByEmail(signInRequestDto.getEmail())
-            .orElseThrow(EntityNotFoundException::new);
+            .orElseThrow(UserNotFoundException::new);
 
     // 패스워드 일치 여부 확인
     if (!passwordEncoder.matches(signInRequestDto.getPassword(), user.getPassword())) {
-      throw new BadCredentialsException("Incorrect account information");
+      throw new BadCredentialsException("사용자 정보가 올바르지 않습니다.");
     }
 
     // AccessToken, RefreshToken 발급
@@ -87,17 +88,17 @@ public class SignService {
     RefreshToken refreshToken =
         refreshTokenRepository
             .findByTokenKey(Long.parseLong(authentication.getName()))
-            .orElseThrow(EntityNotFoundException::new);
+            .orElseThrow(RefreshTokenNotFoundException::new);
 
     if (!refreshToken.getToken().equals(refreshTokenRequestDto.getRefreshToken())) {
-      throw new BadCredentialsException("Incorrect refresh token");
+      throw new BadCredentialsException("리프레시 토큰 정보가 올바르지 않습니다.");
     }
 
     // AccessToken, RefreshToken 재발급
     User user =
         userRepository
             .findById(Long.parseLong(authentication.getName()))
-            .orElseThrow(EntityNotFoundException::new);
+            .orElseThrow(UserNotFoundException::new);
 
     JwtTokenDto jwtTokenDto = jwtTokenUtils.createJwtToken(user.getId(), user.getRoles());
     refreshTokenRepository.save(refreshToken.updateToken(jwtTokenDto.getRefreshToken()));

@@ -1,7 +1,7 @@
 package com.hongeee.vacation.service;
 
+import com.hongeee.vacation.exception.UserNotFoundException;
 import com.hongeee.vacation.repository.UserRepository;
-import javax.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,8 +18,6 @@ public class CustomUserDetailsService implements UserDetailsService {
   @Override
   @Transactional(readOnly = true)
   public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-    return userRepository
-        .findById(Long.parseLong(userId))
-        .orElseThrow(EntityNotFoundException::new);
+    return userRepository.findById(Long.parseLong(userId)).orElseThrow(UserNotFoundException::new);
   }
 }
