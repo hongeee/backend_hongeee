@@ -15,8 +15,8 @@ public class VacationValidationUtils {
 
   private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
 
-  public Long getPeriodExceptHolidays(LocalDate startDate, LocalDate endDate) {
-    Long period = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+  public long getPeriodExceptHolidays(LocalDate startDate, LocalDate endDate) {
+    long period = ChronoUnit.DAYS.between(startDate, endDate) + 1;
     LocalDate tempDate = startDate;
 
     long count = period;
@@ -32,7 +32,7 @@ public class VacationValidationUtils {
     return period;
   }
 
-  private boolean isContainedHolidays(LocalDate localDate) {
+  public boolean isContainedHolidays(LocalDate localDate) {
     // 토요일, 일요일일 경우
     if (localDate.getDayOfWeek().equals(DayOfWeek.SATURDAY)
         || localDate.getDayOfWeek().equals(DayOfWeek.SUNDAY)) {

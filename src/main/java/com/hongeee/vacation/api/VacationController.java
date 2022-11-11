@@ -1,5 +1,6 @@
 package com.hongeee.vacation.api;
 
+import com.hongeee.vacation.api.model.AnnualDaysResponseDto;
 import com.hongeee.vacation.api.model.VacationRequestDto;
 import com.hongeee.vacation.api.model.VacationResponseDto;
 import com.hongeee.vacation.service.VacationService;
@@ -27,13 +28,13 @@ public class VacationController {
   }
 
   @PostMapping("/vacations")
-  public ResponseEntity<Double> requestVacation(
+  public ResponseEntity<AnnualDaysResponseDto> requestVacation(
       @RequestBody VacationRequestDto vacationRequestDto) {
     return ResponseEntity.ok(vacationService.requestVacation(vacationRequestDto));
   }
 
   @PutMapping("/vacations/{id}")
-  public ResponseEntity<Double> cancelVacation(@PathVariable("id") Long id) {
+  public ResponseEntity<AnnualDaysResponseDto> cancelVacation(@PathVariable("id") Long id) {
     return ResponseEntity.ok(vacationService.cancelVacation(id));
   }
 }

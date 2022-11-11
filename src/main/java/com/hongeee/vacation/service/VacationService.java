@@ -1,8 +1,10 @@
 package com.hongeee.vacation.service;
 
+import com.hongeee.vacation.api.model.AnnualDaysResponseDto;
 import com.hongeee.vacation.api.model.VacationRequestDto;
 import com.hongeee.vacation.api.model.VacationResponseDto;
 import com.hongeee.vacation.api.model.VacationStatus;
+import com.hongeee.vacation.api.model.VacationType;
 import com.hongeee.vacation.domain.User;
 import com.hongeee.vacation.domain.Vacation;
 import com.hongeee.vacation.repository.UserRepository;
@@ -49,37 +51,72 @@ public class VacationService {
   }
 
   @Transactional
-  public Double requestVacation(VacationRequestDto vacationRequestDto) {
+  public AnnualDaysResponseDto requestVacation(VacationRequestDto vacationRequestDto) {
     User user = getCurrentUser();
 
     if (user.getAnnualDays() == 0) {
-      // TODO: throw Exception
-      // 연차를 모두 사용했습니다.
+      throw new RuntimeException("연차를 모두 사용했습니다.");
     }
 
     // 시작일/종료일 정보를 통해 휴가 사용 일수 계산
-    Long period = vacationValidationUtils.getPeriodExceptHolidays(
-        vacationRequestDto.getStartDate(), vacationRequestDto.getEndDate());
+    double period = 0.00d;
+
+    switch (VacationType.valueOf(vacationRequestDto.getVacationType())) {
+      case DAY:
+        period =
+            vacationValidationUtils.getPeriodExceptHolidays(
+                vacationRequestDto.getStartDate(), vacationRequestDto.getEndDate());
+        break;
+      case HALF_DAY:
+        if (!vacationValidationUtils.isContainedHolidays(vacationRequestDto.getStartDate())) {
+          vacationRequestDto.setEndDate(vacationRequestDto.getStartDate());
+          period = 0.5d;
+        }
+
+        break;
+      case QUARTER_DAY:
+        if (!vacationValidationUtils.isContainedHolidays(vacationRequestDto.getStartDate())) {
+          vacationRequestDto.setEndDate(vacationRequestDto.getStartDate());
+          period = 0.25d;
+        }
+
+        break;
+    }
+
+    if (period == 0) {
+      throw new RuntimeException("휴가 신청 일수가 0일 입니다.");
+    }
 
     // 사용 일수가 남은 휴가 일수보다 적은지 확인
     if (user.getAnnualDays() < period) {
-      // TODO: throw Exception
-      // 남은 연차가 부족합니다.
+      throw new RuntimeException("남은 연차가 부족합니다.");
     }
 
     // 이미 신청한 휴가와 겹치는 날짜가 있는지 확인
+    if (user.getVacations().stream()
+        .anyMatch(
+            v ->
+                v.getVacationStatus().equals(VacationStatus.REQUESTED)
+                    && ((v.getStartDate().compareTo(vacationRequestDto.getStartDate()) <= 0
+                            && v.getEndDate().compareTo(vacationRequestDto.getStartDate()) >= 0)
+                        || (v.getStartDate().compareTo(vacationRequestDto.getEndDate()) <= 0
+                            && v.getEndDate().compareTo(vacationRequestDto.getEndDate()) >= 0)))) {
+      throw new RuntimeException("중복된 날짜에 이미 휴가 신청이 있습니다.");
+    }
 
     Vacation vacation = vacationRequestDto.toEntity();
+    vacation.setPeriod(period);
     vacation.setUser(user);
     vacationRepository.save(vacation);
+
     user.updateAnnualDays(-vacation.getPeriod());
     userRepository.save(user);
 
-    return user.getAnnualDays();
+    return AnnualDaysResponseDto.builder().annualDays(user.getAnnualDays()).build();
   }
 
   @Transactional
-  public Double cancelVacation(Long id) {
+  public AnnualDaysResponseDto cancelVacation(Long id) {
     User user = getCurrentUser();
 
     // 취소하려는 휴가 신청이 사용자가 신청한 것인지 확인
@@ -90,18 +127,18 @@ public class VacationService {
             .orElseThrow(EntityNotFoundException::new);
 
     // 취소하려는 휴가의 시작 날짜 체크
-    if (vacation.getStartDate().isBefore(LocalDate.now())
-        || vacation.getStartDate().isEqual(LocalDate.now())) {
-      // TODO: 이미 시작한 휴가 취소 불가
+    if (vacation.getStartDate().compareTo(LocalDate.now()) <= 0) {
+      throw new RuntimeException("이미 시작한 휴가는 취소할 수 없습니다.");
     }
 
     // 휴가 취소 및 연차 일수 반환
     vacation.setVacationStatus(VacationStatus.CANCELED);
     vacationRepository.save(vacation);
+
     user.updateAnnualDays(vacation.getPeriod());
     userRepository.save(user);
 
-    return user.getAnnualDays();
+    return AnnualDaysResponseDto.builder().annualDays(user.getAnnualDays()).build();
   }
 
   private User getCurrentUser() {

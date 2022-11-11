@@ -4,6 +4,8 @@ import com.hongeee.vacation.api.model.VacationStatus;
 import com.hongeee.vacation.api.model.VacationType;
 import java.time.LocalDate;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -42,7 +44,9 @@ public class Vacation {
 
   private String comment;
 
+  @Enumerated(EnumType.STRING)
   private VacationType vacationType;
 
+  @Enumerated(EnumType.STRING)
   private VacationStatus vacationStatus;
 }

@@ -104,10 +104,6 @@ public class User extends BaseEntity implements UserDetails {
     return true;
   }
 
-  public void initAnnualDays() {
-    annualDays = 15d;
-  }
-
   public void updateAnnualDays(Double period) {
     annualDays += period;
   }

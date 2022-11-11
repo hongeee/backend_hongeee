@@ -1,22 +1,23 @@
 package com.hongeee.vacation.api.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDate;
 import lombok.Builder;
 
 @Builder
 public class VacationResponseDto {
 
-  private Long id;
+  @JsonProperty private Long id;
 
-  private LocalDate startDate;
+  @JsonProperty private LocalDate startDate;
 
-  private LocalDate endDate;
+  @JsonProperty private LocalDate endDate;
 
-  private Double period;
+  @JsonProperty private Double period;
 
-  private String comment;
+  @JsonProperty private String comment;
 
-  private String vacationType;
+  @JsonProperty private String vacationType;
 
-  private String vacationStatus;
+  @JsonProperty private String vacationStatus;
 }
