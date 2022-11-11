@@ -10,6 +10,6 @@ services:
       - MYSQL_ROOT_PASSWORD=secret
     ports:
       - 3306:3306
-    command: mysqld --skip-ssl --character_set_server=utf8mb4 --explicit_defaults_for_timestamp
+    command: mysqld --skip-ssl --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --explicit_defaults_for_timestamp
     healthcheck:
       test: mysql -e 'SELECT 1' 2>/dev/null || mysql -uroot -psecret -e 'SELECT 1' 2>/dev/null || exit 1
