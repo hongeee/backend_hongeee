@@ -10,7 +10,7 @@
 			"name": "api",
 			"item": [
 				{
-					"name": "휴가 목록 보기",
+					"name": "휴가 신청 목록",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -35,7 +35,7 @@
 					"response": []
 				},
 				{
-					"name": "휴가 취소",
+					"name": "휴가 신청 취소",
 					"request": {
 						"method": "PUT",
 						"header": [

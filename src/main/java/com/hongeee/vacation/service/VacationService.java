@@ -133,7 +133,7 @@ public class VacationService {
       throw new VacationException("이미 시작한 휴가는 취소할 수 없습니다.");
     }
 
-    // 휴가 취소 및 연차 일수 반환
+    // 휴가 신청 취소 및 연차 일수 반환
     vacation.setVacationStatus(VacationStatus.CANCELED);
     vacationRepository.save(vacation);
 
