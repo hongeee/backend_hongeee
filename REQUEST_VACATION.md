@@ -140,7 +140,7 @@ curl --location --request POST 'localhost:8080/api/vacations' \
 --header 'Authorization: {accessToken}' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "startDate": "2022-12-03",
+    "startDate": "2022-12-05",
     "comment": "반차 신청",
     "vacationType": "HALF_DAY"
 }'
@@ -153,8 +153,8 @@ curl --location --request POST 'localhost:8080/api/vacations' \
 --header 'Authorization: {accessToken}' \
 --header 'Content-Type: application/json' \
 --data-raw '{
-    "startDate": "2022-12-04",
-    "comment": "반차 신청",
+    "startDate": "2022-12-06",
+    "comment": "반반차 신청",
     "vacationType": "QUARTER_DAY"
 }'
 ```
@@ -230,6 +230,6 @@ curl --location --request GET 'localhost:8080/api/vacations' \
 ### 휴가 신청 취소 API 호출
 
 ```shell
-curl --location --request PUT 'localhost:8080/api/vacations/{id}}' \
+curl --location --request PUT 'localhost:8080/api/vacations/{id}' \
 --header 'Authorization: {accessToken}'
 ```
